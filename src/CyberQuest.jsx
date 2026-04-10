@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { COLORS } from "./theme/colors.js";
 import { MODULES } from "./data/content.js";
-import { loadProgress, saveProgress } from "./utils/progress.js";
+import { loadProgress, saveProgress, loadSession, saveSession } from "./utils/progress.js";
 
 import Badge from "./components/ui/Badge.jsx";
 import Confetti from "./components/ui/Confetti.jsx";
 import XPBar from "./components/ui/XPBar.jsx";
+import Particles from "./components/ui/Particles.jsx";
 
 import Login from "./components/Login.jsx";
 import Leaderboard from "./components/Leaderboard.jsx";
 import Achievements from "./components/Achievements.jsx";
+import DashboardHome from "./components/DashboardHome.jsx";
 
 import QuizGame from "./modules/QuizGame.jsx";
 import EscapeRoom from "./modules/EscapeRoom.jsx";
@@ -17,15 +19,50 @@ import PasswordGame from "./modules/PasswordGame.jsx";
 import AttackSimulator from "./modules/AttackSimulator.jsx";
 import HackTheHacker from "./modules/HackTheHacker.jsx";
 import Resources from "./modules/Resources.jsx";
+import ThreatMap from "./modules/ThreatMap.jsx";
+import PhishingEmailCatcher from "./modules/phishingEmailCatcher.jsx";
 
 export default function CyberQuest() {
   const [active, setActive] = useState(null);
   const [tab, setTab] = useState("home"); // home | leaderboard | achievements
-  const [user, setUser] = useState(() => loadProgress().user || null);
-  const [xp, setXp] = useState(() => loadProgress().xp || 0);
-  const [completedModules, setCompleted] = useState(() => loadProgress().completed || []);
+  const [user, setUser] = useState(() => loadSession());
+  const [xp, setXp] = useState(0);
+  const [completedModules, setCompleted] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [confetti, setConfetti] = useState(false);
   const [key, setKey] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("cq_sidebar_collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("cq_sidebar_collapsed", sidebarCollapsed ? "1" : "0");
+    } catch {
+      // ignore
+    }
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    let mounted = true;
+    if (user && user.name) {
+      setLoading(true);
+      loadProgress(user.name).then(data => {
+        if (!mounted) return;
+        setXp(data.xp || 0);
+        setCompleted(data.completed || []);
+        setLoading(false);
+      });
+    } else {
+      setXp(0);
+      setCompleted([]);
+    }
+    return () => { mounted = false; };
+  }, [user]);
 
   function addXP(amount) {
     const newXp = xp + amount;
@@ -43,36 +80,52 @@ export default function CyberQuest() {
     setKey((k) => k + 1);
   }
 
-  const mod = MODULES.find((m) => m.id === active);
-  const level = Math.floor(xp / 100) + 1;
-
   const gameComponents = {
     quiz: <QuizGame key={key} onXP={addXP} />,
     escape: <EscapeRoom key={key} onXP={addXP} />,
     password: <PasswordGame key={key} onXP={addXP} />,
     attack: <AttackSimulator key={key} onXP={addXP} />,
     hack: <HackTheHacker key={key} onXP={addXP} />,
-    resources: <Resources key={key} />
+    resources: <Resources key={key} />,
+    threatmap: <ThreatMap key={key} />,
+    phishing: <PhishingEmailCatcher key={key} onXP={addXP} />
   };
+
+  const mod = MODULES.find((m) => m.id === active);
+  const level = Math.floor(xp / 100) + 1;
+  const moduleView = gameComponents[active];
 
   function handleLogin(profile) {
     setUser(profile);
-    saveProgress({ ...loadProgress(), user: profile });
+    saveSession(profile);
   }
 
   function logout() {
     setUser(null);
     setActive(null);
     setTab("home");
-    saveProgress({ ...loadProgress(), user: null });
+    saveSession(null);
   }
 
   if (!user) {
     return <Login onLogin={handleLogin} />;
   }
 
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", background: COLORS.bg, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.accent, fontFamily: "'Rajdhani', sans-serif" }}>
+        <h2 className="cq-glowPulse" style={{ fontSize: 24, letterSpacing: 2 }}>CONNECTING TO SECURE DATABASE...</h2>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ minHeight: "100vh", background: COLORS.bg, color: COLORS.text, fontFamily: "'Rajdhani', system-ui, -apple-system, Segoe UI, sans-serif", padding: 0 }}>
+    <div className="cq-app" style={{ minHeight: "100vh", background: COLORS.bg, color: COLORS.text, fontFamily: "'Rajdhani', system-ui, -apple-system, Segoe UI, sans-serif", padding: 0 }}>
+      <div className="cq-fx" aria-hidden="true">
+        <div className="cq-grid" />
+        <div className="cq-scanline" />
+        <Particles />
+      </div>
       <Confetti active={confetti} />
 
       <div
@@ -95,7 +148,7 @@ export default function CyberQuest() {
             </button>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 20 }}>🛡️</span>
+            <span style={{ fontSize: 20 }} className="cq-glowPulse">🛡️</span>
             <span style={{ fontFamily: "'Orbitron', monospace", fontWeight: 900, fontSize: 15, color: COLORS.accent, letterSpacing: 2 }}>CYBERQUEST</span>
           </div>
           <div style={{ display: "flex", gap: 8, marginLeft: 10 }}>
@@ -132,8 +185,12 @@ export default function CyberQuest() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <span style={{ fontSize: 12, color: COLORS.textMuted }}>{completedModules.length}/{MODULES.length} modules</span>
-          <Badge text={`LVL ${level}`} color={COLORS.accent3} />
-          <Badge text={`${xp} XP`} color={COLORS.warn} />
+          <span className="cq-glowPulse">
+            <Badge text={`LVL ${level}`} color={COLORS.accent3} />
+          </span>
+          <span className="cq-glowPulse">
+            <Badge text={`${xp} XP`} color={COLORS.warn} />
+          </span>
           <button
             onClick={logout}
             style={{ background: "transparent", border: `1px solid ${COLORS.border}`, color: COLORS.textMuted, cursor: "pointer", borderRadius: 10, padding: "6px 10px", fontSize: 12, fontWeight: 800 }}
@@ -149,93 +206,38 @@ export default function CyberQuest() {
       ) : tab === "achievements" ? (
         <Achievements xp={xp} completedModules={completedModules} />
       ) : (
-        <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px" }}>
-          <XPBar xp={xp} />
-
-          {!active ? (
-            <>
-              <div style={{ textAlign: "center", padding: "40px 0 32px" }}>
-                <div style={{ fontSize: 13, color: COLORS.accent, letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
-                  Welcome back, <span style={{ color: COLORS.text, fontWeight: 800 }}>{user?.name}</span>
+        <>
+          <DashboardHome
+            user={user}
+            xp={xp}
+            completedModules={completedModules}
+            active={active}
+            mod={mod}
+            onOpenModule={openModule}
+            onBack={() => setActive(null)}
+            sidebarCollapsed={sidebarCollapsed}
+            onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
+            onNavigate={(dest) => {
+              setActive(null);
+              setTab(dest);
+            }}
+          />
+          {active ? (
+            <div style={{ position: "relative", zIndex: 2, maxWidth: 1180, margin: "0 auto", padding: "0 16px 36px" }}>
+              <div style={{ marginLeft: sidebarCollapsed ? 96 : 276, transition: "margin-left 220ms ease" }}>
+                <div style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 24 }}>{moduleView}</div>
+                <div style={{ marginTop: 14, textAlign: "center" }}>
+                  <button
+                    onClick={() => openModule(active)}
+                    style={{ background: "none", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "8px 20px", color: COLORS.textMuted, cursor: "pointer", fontSize: 12, fontFamily: "inherit", fontWeight: 900 }}
+                  >
+                    🔄 Restart
+                  </button>
                 </div>
-                <div style={{ fontSize: 32, fontWeight: 700, lineHeight: 1.2, marginBottom: 12, fontFamily: "'Orbitron', monospace" }}>
-                  <span style={{ color: COLORS.accent }}>Defend.</span> <span style={{ color: COLORS.accent2 }}>Learn.</span> <span style={{ color: COLORS.accent3 }}>Conquer.</span>
-                </div>
-                <div style={{ color: COLORS.textMuted, fontSize: 14, maxWidth: 460, margin: "0 auto" }}>
-                  Master cybersecurity through interactive challenges, escape rooms, and real-world simulations.
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 32 }}>
-                {[
-                  { label: "Total XP", value: xp, color: COLORS.warn },
-                  { label: "Modules Done", value: `${completedModules.length}/${MODULES.length}`, color: COLORS.accent },
-                  { label: "Level", value: level, color: COLORS.accent3 }
-                ].map((s, i) => (
-                  <div key={i} style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "14px 16px", textAlign: "center" }}>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: "'Orbitron', monospace" }}>{s.value}</div>
-                    <div style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2, letterSpacing: 2 }}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-                {MODULES.map((m) => {
-                  const done = completedModules.includes(m.id);
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => openModule(m.id)}
-                      style={{
-                        background: COLORS.bgCard,
-                        border: `1px solid ${done ? m.color + "66" : COLORS.border}`,
-                        borderRadius: 12,
-                        padding: 20,
-                        textAlign: "left",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        transition: "all 0.2s",
-                        position: "relative"
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = m.color;
-                        e.currentTarget.style.background = COLORS.bgCardHover;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = done ? m.color + "66" : COLORS.border;
-                        e.currentTarget.style.background = COLORS.bgCard;
-                      }}
-                    >
-                      {done && <div style={{ position: "absolute", top: 10, right: 10, fontSize: 14 }}>✅</div>}
-                      <div style={{ fontSize: 28, marginBottom: 10 }}>{m.icon}</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: m.color, marginBottom: 4, letterSpacing: 1, fontFamily: "'Orbitron', monospace" }}>{m.label}</div>
-                      <div style={{ fontSize: 11, color: COLORS.textMuted }}>{m.desc}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          ) : (
-            <div style={{ marginTop: 24 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-                <span style={{ fontSize: 28 }}>{mod?.icon}</span>
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: mod?.color, fontFamily: "'Orbitron', monospace" }}>{mod?.label}</div>
-                  <div style={{ fontSize: 12, color: COLORS.textMuted }}>{mod?.desc}</div>
-                </div>
-              </div>
-              <div style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 24 }}>{gameComponents[active]}</div>
-              <div style={{ marginTop: 16, textAlign: "center" }}>
-                <button
-                  onClick={() => openModule(active)}
-                  style={{ background: "none", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 20px", color: COLORS.textMuted, cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}
-                >
-                  🔄 Restart
-                </button>
               </div>
             </div>
-          )}
-        </div>
+          ) : null}
+        </>
       )}
     </div>
   );

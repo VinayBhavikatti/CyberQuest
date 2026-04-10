@@ -1,10 +1,18 @@
 import { COLORS } from "../../theme/colors.js";
+import { useEffect, useState } from "react";
 
 export default function XPBar({ xp }) {
   const level = Math.floor(xp / 100) + 1;
   const progress = xp % 100;
   const titles = ["Rookie", "Scout", "Analyst", "Engineer", "Hunter", "Elite Defender"];
   const title = titles[Math.min(level - 1, titles.length - 1)];
+  const [animatedProgress, setAnimatedProgress] = useState(0);
+
+  useEffect(() => {
+    setAnimatedProgress(0);
+    const t = setTimeout(() => setAnimatedProgress(progress), 30);
+    return () => clearTimeout(t);
+  }, [progress, level]);
 
   return (
     <div
@@ -26,11 +34,11 @@ export default function XPBar({ xp }) {
         <div style={{ height: 6, background: "#1e2d4d", borderRadius: 3, overflow: "hidden" }}>
           <div
             style={{
-              width: `${progress}%`,
+              width: `${animatedProgress}%`,
               height: "100%",
               background: `linear-gradient(90deg, ${COLORS.accent2}, ${COLORS.accent})`,
               borderRadius: 3,
-              transition: "width 0.5s"
+              transition: "width 900ms cubic-bezier(0.2, 0.9, 0.2, 1)"
             }}
           />
         </div>

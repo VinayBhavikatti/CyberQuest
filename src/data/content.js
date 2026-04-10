@@ -240,6 +240,8 @@ export const MODULES = [
   { id: "password", label: "Master Passwords", icon: "🔑", color: "#10b981", desc: "Create & evaluate passwords" },
   { id: "attack", label: "Attack Simulator", icon: "⚡", color: "#f59e0b", desc: "Respond to live threats" },
   { id: "hack", label: "Hack The Hacker", icon: "🕵️", color: "#ef4444", desc: "Analyze & decrypt" },
-  { id: "resources", label: "Security Resources", icon: "📚", color: "#64748b", desc: "Guides & tools" }
+  { id: "resources", label: "Security Resources", icon: "📚", color: "#64748b", desc: "Guides & tools" },
+  { id: "threatmap", label: "Threat Map", icon: "🗺️", color: "#ff3b3b", desc: "Global breach activity — live simulation" },
+  { id: "phishing", label: "Phishing Email Catcher", icon: "📧", color: "#f97316", desc: "Spot the phish" }
 ];
 
