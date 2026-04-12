@@ -11,7 +11,7 @@ import Particles from "./components/ui/Particles.jsx";
 import Login from "./components/Login.jsx";
 import Leaderboard from "./components/Leaderboard.jsx";
 import Achievements from "./components/Achievements.jsx";
-import DashboardHome from "./components/DashboardHome.jsx";
+import DashboardHome, { Footer } from "./components/DashboardHome.jsx";
 
 import QuizGame from "./modules/QuizGame.jsx";
 import EscapeRoom from "./modules/EscapeRoom.jsx";
@@ -28,7 +28,9 @@ export default function CyberQuest() {
   const [user, setUser] = useState(() => loadSession());
   const [xp, setXp] = useState(0);
   const [completedModules, setCompleted] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => {
+    try { return !!sessionStorage.getItem("cq_session_user"); } catch { return false; }
+  });
   const [confetti, setConfetti] = useState(false);
   const [key, setKey] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -55,7 +57,9 @@ export default function CyberQuest() {
         if (!mounted) return;
         setXp(data.xp || 0);
         setCompleted(data.completed || []);
-        setLoading(false);
+        setTimeout(() => {
+          if (mounted) setLoading(false);
+        }, 1500);
       });
     } else {
       setXp(0);
@@ -96,6 +100,7 @@ export default function CyberQuest() {
   const moduleView = gameComponents[active];
 
   function handleLogin(profile) {
+    setLoading(true);
     setUser(profile);
     saveSession(profile);
   }
@@ -239,6 +244,9 @@ export default function CyberQuest() {
           ) : null}
         </>
       )}
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 16px 24px" }}>
+        <Footer />
+      </div>
     </div>
   );
 }

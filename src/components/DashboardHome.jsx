@@ -8,7 +8,7 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
-function Footer() {
+export function Footer() {
   return (
     <footer
       style={{
@@ -891,9 +891,6 @@ export default function DashboardHome({
           )}
 
         </main>
-      </div>
-      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 16px 24px" }}>
-        <Footer />
       </div>
     </div>
   );
