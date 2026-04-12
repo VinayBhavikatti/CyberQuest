@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { COLORS } from "./theme/colors.js";
 import { MODULES } from "./data/content.js";
-import { loadProgress, saveProgress, loadSession, saveSession } from "./utils/progress.js";
+import { loadProgress, saveProgress, loadSession, logoutUser } from "./utils/progress.js";
 
 import Badge from "./components/ui/Badge.jsx";
 import Confetti from "./components/ui/Confetti.jsx";
@@ -29,7 +29,7 @@ export default function CyberQuest() {
   const [xp, setXp] = useState(0);
   const [completedModules, setCompleted] = useState([]);
   const [loading, setLoading] = useState(() => {
-    try { return !!sessionStorage.getItem("cq_session_user"); } catch { return false; }
+    try { return !!sessionStorage.getItem("cq_session_token"); } catch { return false; }
   });
   const [confetti, setConfetti] = useState(false);
   const [key, setKey] = useState(0);
@@ -102,14 +102,13 @@ export default function CyberQuest() {
   function handleLogin(profile) {
     setLoading(true);
     setUser(profile);
-    saveSession(profile);
   }
 
   function logout() {
     setUser(null);
     setActive(null);
     setTab("home");
-    saveSession(null);
+    logoutUser();
   }
 
   if (!user) {

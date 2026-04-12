@@ -1,6 +1,6 @@
-import { useEffect, useRef, useMemo, useState } from "react";
-import { COLORS } from "../theme/colors.js";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AVATARS } from "../data/social.js";
+import { loginUser, registerUser } from "../utils/progress.js";
 
 function MatrixRain() {
   const canvasRef = useRef(null);
@@ -11,16 +11,20 @@ function MatrixRain() {
     const ctx = canvas.getContext("2d");
 
     const FONT_SIZE = 16;
-    const CHARS = "アウエカキクサシスタチツABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     const INTERVAL = 120;
 
-    let cols, drops, speeds, animId, lastTime = 0;
+    let cols;
+    let drops;
+    let speeds;
+    let animId;
+    let lastTime = 0;
 
     function resize() {
-      canvas.width  = canvas.offsetWidth;
+      canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
-      cols   = Math.floor(canvas.width / FONT_SIZE);
-      drops  = Array.from({ length: cols }, () => Math.random() * -(canvas.height / FONT_SIZE) * 2);
+      cols = Math.floor(canvas.width / FONT_SIZE);
+      drops = Array.from({ length: cols }, () => Math.random() * -(canvas.height / FONT_SIZE) * 2);
       speeds = Array.from({ length: cols }, () => (Math.random() > 0.5 ? 1 : 2));
       ctx.font = `${FONT_SIZE}px monospace`;
     }
@@ -33,15 +37,19 @@ function MatrixRain() {
       ctx.fillStyle = "rgba(4,13,24,0.18)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      for (let i = 0; i < cols; i++) {
+      for (let i = 0; i < cols; i += 1) {
         const y = Math.floor(drops[i]) * FONT_SIZE;
-        if (y < 0) { drops[i] += speeds[i]; continue; }
+        if (y < 0) {
+          drops[i] += speeds[i];
+          continue;
+        }
 
         ctx.fillStyle = Math.random() > 0.92 ? "#e0fff8" : "#00c896";
         ctx.fillText(CHARS[Math.floor(Math.random() * CHARS.length)], i * FONT_SIZE, y);
 
-        if (y > canvas.height && Math.random() > 0.97)
+        if (y > canvas.height && Math.random() > 0.97) {
           drops[i] = -Math.floor(Math.random() * 20);
+        }
 
         drops[i] += speeds[i];
       }
@@ -52,7 +60,10 @@ function MatrixRain() {
     ro.observe(canvas);
     animId = requestAnimationFrame(draw);
 
-    return () => { cancelAnimationFrame(animId); ro.disconnect(); };
+    return () => {
+      cancelAnimationFrame(animId);
+      ro.disconnect();
+    };
   }, []);
 
   return (
@@ -75,50 +86,53 @@ const globalStyles = `
 
   @keyframes cq-pulse {
     0%, 100% { filter: drop-shadow(0 0 12px #00e5c0) drop-shadow(0 0 24px #00e5c088); }
-    50%       { filter: drop-shadow(0 0 22px #00e5c0) drop-shadow(0 0 44px #00e5c0aa); }
-  }
-  @keyframes cq-flicker {
-    0%,95%,100% { opacity: 1; }
-    97%         { opacity: 0.82; }
-    98%         { opacity: 1; }
-    99%         { opacity: 0.9; }
-  }
-  @keyframes cq-shimmer {
-    0%   { transform: translateX(-100%); }
-    100% { transform: translateX(220%); }
-  }
-  @keyframes cq-blink {
-    0%, 100% { opacity: 1; }
-    50%      { opacity: 0; }
-  }
-  @keyframes cq-scanpulse {
-    0%, 100% { opacity: 0.6; }
-    50%      { opacity: 1; }
+    50% { filter: drop-shadow(0 0 22px #00e5c0) drop-shadow(0 0 44px #00e5c0aa); }
   }
 
-  .cq-title       { animation: cq-flicker 4s infinite; }
-  .cq-logo-icon   { animation: cq-pulse 2.5s ease-in-out infinite; }
+  @keyframes cq-flicker {
+    0%, 95%, 100% { opacity: 1; }
+    97% { opacity: 0.82; }
+    98% { opacity: 1; }
+    99% { opacity: 0.9; }
+  }
+
+  @keyframes cq-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(220%); }
+  }
+
+  @keyframes cq-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .cq-title { animation: cq-flicker 4s infinite; }
+  .cq-logo-icon { animation: cq-pulse 2.5s ease-in-out infinite; }
   .cq-btn::before { animation: cq-shimmer 2.8s infinite; }
-  .cq-blink       { animation: cq-blink 1s step-end infinite; }
+  .cq-blink { animation: cq-blink 1s step-end infinite; }
 
   .cq-input:focus {
     border-color: rgba(0,229,192,0.65) !important;
     box-shadow: 0 0 16px rgba(0,229,192,0.18) !important;
   }
+
   .cq-input:focus ~ .cq-bar {
     background: linear-gradient(90deg, transparent, #00e5c0, transparent) !important;
   }
+
   .cq-tab-active {
     background: linear-gradient(135deg, rgba(0,229,192,0.18), rgba(0,180,220,0.18)) !important;
     color: #00e5c0 !important;
     border: 1px solid rgba(0,229,192,0.32) !important;
     box-shadow: 0 0 12px rgba(0,229,192,0.2) !important;
   }
+
   .cq-tab-inactive {
     background: transparent !important;
     color: rgba(0,200,160,0.4) !important;
     border: 1px solid transparent !important;
   }
+
   .cq-avatar-sel {
     border-color: #00e5c0 !important;
     box-shadow: 0 0 14px rgba(0,229,192,0.55) !important;
@@ -126,22 +140,66 @@ const globalStyles = `
   }
 `;
 
+function StatusPanel({ status, error }) {
+  return (
+    <>
+      {error ? (
+        <div
+          style={{
+            marginTop: 12,
+            padding: "8px 10px",
+            borderRadius: 8,
+            border: "1px solid rgba(255,90,90,0.3)",
+            background: "rgba(255,90,90,0.08)",
+            color: "#ff9a9a",
+            fontSize: 12,
+          }}
+        >
+          {error}
+        </div>
+      ) : null}
+      <div
+        style={{
+          fontFamily: "'Rajdhani', monospace",
+          fontSize: 12,
+          color: error ? "#ff9a9a" : "rgba(0,200,160,0.55)",
+          textAlign: "center",
+          marginTop: 14,
+          letterSpacing: 1,
+          minHeight: 18,
+        }}
+      >
+        {status ? (
+          <>
+            {status} <span className="cq-blink">|</span>
+          </>
+        ) : (
+          <span className="cq-blink">_</span>
+        )}
+      </div>
+    </>
+  );
+}
+
 export default function Login({ onLogin }) {
   const [mode, setMode] = useState("login");
-  const [username, setUsername] = useState("CyberFox");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [regUsername, setRegUsername] = useState("");
+  const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
-  const [avatar, setAvatar] = useState(AVATARS[0] ?? "🦊");
+  const [avatar, setAvatar] = useState(AVATARS[0] ?? "🛡️");
   const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (document.getElementById("cq-styles")) return;
-    const s = document.createElement("style");
-    s.id = "cq-styles";
-    s.textContent = globalStyles;
-    document.head.appendChild(s);
-    return () => s.remove();
+    if (document.getElementById("cq-styles")) return undefined;
+    const style = document.createElement("style");
+    style.id = "cq-styles";
+    style.textContent = globalStyles;
+    document.head.appendChild(style);
+    return () => style.remove();
   }, []);
 
   const accent = "#00e5c0";
@@ -152,13 +210,12 @@ export default function Login({ onLogin }) {
       position: "relative",
       zIndex: 2,
       width: "100%",
-      maxWidth: 360,
+      maxWidth: 380,
       background: "rgba(4,16,32,0.90)",
       border: "1px solid rgba(0,220,180,0.22)",
       borderRadius: 16,
       padding: "24px 22px",
-      boxShadow:
-        "0 0 60px rgba(0,200,160,0.08), inset 0 0 40px rgba(0,100,80,0.05)",
+      boxShadow: "0 0 60px rgba(0,200,160,0.08), inset 0 0 40px rgba(0,100,80,0.05)",
     }),
     []
   );
@@ -191,7 +248,7 @@ export default function Login({ onLogin }) {
     padding: "11px 14px",
     border: "none",
     borderRadius: 10,
-    cursor: "pointer",
+    cursor: submitting ? "wait" : "pointer",
     background: `linear-gradient(135deg, ${accent}, ${accent2})`,
     color: "#001a14",
     fontFamily: "'Orbitron', monospace",
@@ -201,7 +258,79 @@ export default function Login({ onLogin }) {
     position: "relative",
     overflow: "hidden",
     marginTop: 4,
+    opacity: submitting ? 0.75 : 1,
   };
+
+  const barStyle = {
+    position: "absolute",
+    bottom: 0,
+    left: 12,
+    right: 12,
+    height: 1,
+    background: "transparent",
+    transition: "background 0.2s",
+  };
+
+  function resetMessages(nextMode) {
+    setMode(nextMode);
+    setStatus("");
+    setError("");
+  }
+
+  async function submitLogin(event) {
+    event.preventDefault();
+    setError("");
+
+    const safeEmail = email.trim().toLowerCase();
+    if (!safeEmail || !password) {
+      setError("Enter your email and password.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setStatus("VERIFYING EMAIL LOGIN...");
+      const profile = await loginUser({ email: safeEmail, password });
+      setStatus("ACCESS GRANTED");
+      onLogin?.(profile);
+    } catch (err) {
+      setStatus("ACCESS DENIED");
+      setError(err.message || "Login failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function submitSignup(event) {
+    event.preventDefault();
+    setError("");
+
+    const username = regUsername.trim();
+    const safeEmail = regEmail.trim().toLowerCase();
+
+    if (!username || !safeEmail || !regPassword) {
+      setError("Username, email, and password are required.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setStatus("ENCRYPTING CREDENTIALS...");
+      const profile = await registerUser({
+        username,
+        email: safeEmail,
+        password: regPassword,
+        avatar,
+      });
+      setStatus("AGENT ACTIVATED");
+      onLogin?.(profile);
+    } catch (err) {
+      setStatus("REGISTRATION BLOCKED");
+      setError(err.message || "Registration failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   const Corner = ({ pos }) => {
     const styles = {
@@ -210,6 +339,7 @@ export default function Login({ onLogin }) {
       bl: { bottom: -1, left: -1, borderWidth: "0 0 2px 2px", borderRadius: "0 0 0 2px" },
       br: { bottom: -1, right: -1, borderWidth: "0 2px 2px 0", borderRadius: "0 0 2px 0" },
     };
+
     return (
       <div
         style={{
@@ -224,25 +354,6 @@ export default function Login({ onLogin }) {
     );
   };
 
-  function triggerStatus(msg, delay = 1200, final = "") {
-    setStatus(msg);
-    if (final) setTimeout(() => setStatus(final), delay);
-  }
-
-  function submitLogin(e) {
-    e.preventDefault();
-    const name = (username || "").trim() || "CyberAgent";
-    triggerStatus(`AUTHENTICATING ${name.toUpperCase()}...`, 1200, "ACCESS GRANTED ✓");
-    setTimeout(() => onLogin?.({ name, avatar: "🦊" }), 1400);
-  }
-
-  function submitSignup(e) {
-    e.preventDefault();
-    const name = (regUsername || "").trim() || "CyberAgent";
-    triggerStatus("ENCRYPTING CREDENTIALS...", 900, "AGENT ACTIVATED ✓");
-    setTimeout(() => onLogin?.({ name, avatar }), 1100);
-  }
-
   return (
     <div
       style={{
@@ -251,9 +362,7 @@ export default function Login({ onLogin }) {
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
-        background: `radial-gradient(900px 500px at 30% 20%, ${accent}10, transparent 60%),
-                     radial-gradient(900px 500px at 70% 10%, ${accent2}10, transparent 60%),
-                     #040d18`,
+        background: `radial-gradient(900px 500px at 30% 20%, ${accent}10, transparent 60%), radial-gradient(900px 500px at 70% 10%, ${accent2}10, transparent 60%), #040d18`,
         color: "#b0fff0",
         fontFamily: "'Rajdhani', system-ui, sans-serif",
         position: "relative",
@@ -262,13 +371,11 @@ export default function Login({ onLogin }) {
     >
       <MatrixRain />
 
-      {/* Scanlines */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          background:
-            "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,200,0.012) 2px, rgba(0,255,200,0.012) 4px)",
+          background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,200,0.012) 2px, rgba(0,255,200,0.012) 4px)",
           pointerEvents: "none",
         }}
       />
@@ -279,12 +386,8 @@ export default function Login({ onLogin }) {
         <Corner pos="bl" />
         <Corner pos="br" />
 
-        {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 16 }}>
-          <div
-            className="cq-logo-icon"
-            style={{ fontSize: 36, display: "block", marginBottom: 6 }}
-          >
+          <div className="cq-logo-icon" style={{ fontSize: 36, display: "block", marginBottom: 6 }}>
             🛡️
           </div>
           <div
@@ -309,11 +412,10 @@ export default function Login({ onLogin }) {
               fontFamily: "'Rajdhani', sans-serif",
             }}
           >
-            DEFEND · LEARN · CONQUER
+            DEFEND - LEARN - CONQUER
           </div>
         </div>
 
-        {/* Tabs */}
         <div
           style={{
             display: "flex",
@@ -328,11 +430,12 @@ export default function Login({ onLogin }) {
           {[
             { id: "login", label: "LOGIN" },
             { id: "signup", label: "REGISTER" },
-          ].map((t) => (
+          ].map((tab) => (
             <button
-              key={t.id}
-              onClick={() => { setMode(t.id); setStatus(""); }}
-              className={mode === t.id ? "cq-tab-active" : "cq-tab-inactive"}
+              key={tab.id}
+              type="button"
+              onClick={() => resetMessages(tab.id)}
+              className={mode === tab.id ? "cq-tab-active" : "cq-tab-inactive"}
               style={{
                 flex: 1,
                 border: "1px solid transparent",
@@ -346,36 +449,26 @@ export default function Login({ onLogin }) {
                 transition: "all 0.25s",
               }}
             >
-              {t.label}
+              {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Login Form */}
-        {mode === "login" && (
+        {mode === "login" ? (
           <form onSubmit={submitLogin}>
             <div style={{ marginBottom: 10 }}>
-              <div style={labelStyle}>USERNAME</div>
+              <div style={labelStyle}>EMAIL</div>
               <div style={{ position: "relative" }}>
                 <input
                   className="cq-input"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="agent@domain.com"
+                  autoComplete="email"
                   style={inputStyle}
                 />
-                <div
-                  className="cq-bar"
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 12,
-                    right: 12,
-                    height: 1,
-                    background: "transparent",
-                    transition: "background 0.2s",
-                  }}
-                />
+                <div className="cq-bar" style={barStyle} />
               </div>
             </div>
             <div style={{ marginBottom: 12 }}>
@@ -385,43 +478,29 @@ export default function Login({ onLogin }) {
                   className="cq-input"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
                   placeholder="Enter password"
+                  autoComplete="current-password"
                   style={inputStyle}
                 />
-                <div
-                  className="cq-bar"
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 12,
-                    right: 12,
-                    height: 1,
-                    background: "transparent",
-                    transition: "background 0.2s",
-                  }}
-                />
+                <div className="cq-bar" style={barStyle} />
               </div>
             </div>
-            <button type="submit" className="cq-btn" style={btnStyle}>
+            <button type="submit" className="cq-btn" style={btnStyle} disabled={submitting}>
               <span
                 className="cq-btn"
                 style={{
                   position: "absolute",
                   inset: 0,
-                  background:
-                    "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%)",
+                  background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%)",
                   transform: "translateX(-100%)",
                   pointerEvents: "none",
                 }}
               />
-              SIGN IN ⚡
+              {submitting ? "VERIFYING..." : "SIGN IN"}
             </button>
           </form>
-        )}
-
-        {/* Signup Form */}
-        {mode === "signup" && (
+        ) : (
           <form onSubmit={submitSignup}>
             <div style={{ marginBottom: 10 }}>
               <div style={labelStyle}>USERNAME</div>
@@ -429,35 +508,51 @@ export default function Login({ onLogin }) {
                 <input
                   className="cq-input"
                   value={regUsername}
-                  onChange={(e) => setRegUsername(e.target.value)}
+                  onChange={(event) => setRegUsername(event.target.value)}
                   placeholder="Choose codename"
+                  autoComplete="username"
                   style={inputStyle}
                 />
-                <div className="cq-bar" style={{ position: "absolute", bottom: 0, left: 12, right: 12, height: 1, background: "transparent", transition: "background 0.2s" }} />
+                <div className="cq-bar" style={barStyle} />
+              </div>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <div style={labelStyle}>EMAIL</div>
+              <div style={{ position: "relative" }}>
+                <input
+                  className="cq-input"
+                  type="email"
+                  value={regEmail}
+                  onChange={(event) => setRegEmail(event.target.value)}
+                  placeholder="agent@domain.com"
+                  autoComplete="email"
+                  style={inputStyle}
+                />
+                <div className="cq-bar" style={barStyle} />
               </div>
             </div>
             <div style={{ marginBottom: 10 }}>
               <div style={labelStyle}>SELECT AVATAR</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-                {AVATARS.map((a) => (
+                {AVATARS.map((itemAvatar) => (
                   <button
                     type="button"
-                    key={a}
-                    onClick={() => setAvatar(a)}
-                    className={a === avatar ? "cq-avatar-sel" : ""}
+                    key={itemAvatar}
+                    onClick={() => setAvatar(itemAvatar)}
+                    className={itemAvatar === avatar ? "cq-avatar-sel" : ""}
                     style={{
                       width: 42,
                       height: 42,
                       borderRadius: 999,
                       cursor: "pointer",
-                      border: `2px solid rgba(0,200,160,0.22)`,
+                      border: "2px solid rgba(0,200,160,0.22)",
                       background: "rgba(0,20,14,0.85)",
                       color: "#b0fff0",
                       fontSize: 18,
                       transition: "all 0.2s",
                     }}
                   >
-                    {a}
+                    {itemAvatar}
                   </button>
                 ))}
               </div>
@@ -469,39 +564,21 @@ export default function Login({ onLogin }) {
                   className="cq-input"
                   type="password"
                   value={regPassword}
-                  onChange={(e) => setRegPassword(e.target.value)}
-                  placeholder="Create passphrase"
+                  onChange={(event) => setRegPassword(event.target.value)}
+                  placeholder="Min 8 chars, upper/lower/number/symbol"
+                  autoComplete="new-password"
                   style={inputStyle}
                 />
-                <div className="cq-bar" style={{ position: "absolute", bottom: 0, left: 12, right: 12, height: 1, background: "transparent", transition: "background 0.2s" }} />
+                <div className="cq-bar" style={barStyle} />
               </div>
             </div>
-            <button type="submit" className="cq-btn" style={btnStyle}>
-              CREATE ACCOUNT ⚡
+            <button type="submit" className="cq-btn" style={btnStyle} disabled={submitting}>
+              {submitting ? "SECURING..." : "CREATE ACCOUNT"}
             </button>
           </form>
         )}
 
-        {/* Status bar */}
-        <div
-          style={{
-            fontFamily: "'Rajdhani', monospace",
-            fontSize: 12,
-            color: "rgba(0,200,160,0.55)",
-            textAlign: "center",
-            marginTop: 14,
-            letterSpacing: 1,
-            minHeight: 18,
-          }}
-        >
-          {status ? (
-            <>
-              {status} <span className="cq-blink">█</span>
-            </>
-          ) : (
-            <span className="cq-blink">_</span>
-          )}
-        </div>
+        <StatusPanel status={status} error={error} />
       </div>
     </div>
   );
